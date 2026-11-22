@@ -66,9 +66,7 @@ def create_dashboard_app(system: Any) -> "object":
         raise RuntimeError("Flask is required for the dashboard: pip install Flask") from exc
 
     app = Flask(__name__)
-    # Suppress Flask startup banner
-    import os
-    os.environ["WERKZEUG_RUN_MAIN"] = "true"
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
     @app.route("/")
     def index():
