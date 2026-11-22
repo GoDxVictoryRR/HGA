@@ -1,7 +1,6 @@
 # HostelGuard (SecureIoT-Sim)
 
 **A Python-Based Simulated IoT Security Framework**
-University School of Automation and Robotics, GGSIPU East Delhi Campus
 IoT Security — Group Project
 
 ---
