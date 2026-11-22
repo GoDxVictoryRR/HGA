@@ -13,5 +13,7 @@ __pycache__/
 
 # Runtime generated databases & keys
 outputs/hostelguard.db
+outputs/hostelguard.db*
 outputs/keystore.json
+outputs/report_compiled.html
 *.zip
