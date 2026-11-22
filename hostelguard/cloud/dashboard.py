@@ -1,66 +1,91 @@
 """
 hostelguard/cloud/dashboard.py
-Simple Flask dashboard for the HostelGuard cloud service.
+Modular, explainable Flask dashboard for the HostelGuard cloud service.
 
-Serves a minimal HTML page at http://127.0.0.1:5000/ showing:
-- Recent telemetry readings (decrypted)
-- Audit log entries and alerts
-- System status
+Serves an interactive security console at http://127.0.0.1:5000/ showing:
+- Real-time system posture, mode and active defenses
+- Architectural pipeline workflow explainer
+- Active mitigation status for all 6 simulated attacks
+- Decrypted IoT sensor telemetry with device category badges
+- Tamper-evident forensic audit trail with security alert flags
 
 The server binds to 127.0.0.1 ONLY (never 0.0.0.0).
 Start it with: python main.py --mode secure --serve
 """
 
+import datetime
 import logging
 from typing import Any
 
+from hostelguard.cloud.template import DASHBOARD_HTML_TEMPLATE
+
 logger = logging.getLogger(__name__)
 
-# HTML template for the dashboard — inline for simplicity, ASCII only
-_HTML_TEMPLATE = """<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta http-equiv="refresh" content="5">
-<title>HostelGuard Dashboard</title>
-<style>
-  body {{ font-family: Arial, sans-serif; background: #f0f4f8; color: #1a202c; margin: 0; padding: 20px; }}
-  h1 {{ background: #1e3a5f; color: white; padding: 16px; margin: -20px -20px 20px; }}
-  h2 {{ color: #2563eb; border-bottom: 2px solid #2563eb; }}
-  table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-  th {{ background: #2563eb; color: white; padding: 8px; text-align: left; }}
-  td {{ padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }}
-  tr:nth-child(even) {{ background: #f7fafc; }}
-  .alert {{ background: #fff5f5; border-left: 4px solid #e53e3e; padding: 8px; margin: 4px 0; }}
-  .ok {{ background: #f0fff4; border-left: 4px solid #38a169; padding: 8px; margin: 4px 0; }}
-  .badge {{ display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }}
-  .badge-red {{ background: #fed7d7; color: #c53030; }}
-  .badge-green {{ background: #c6f6d5; color: #276749; }}
-</style>
-</head>
-<body>
-<h1>HostelGuard - IoT Security Dashboard</h1>
-<h2>System Status</h2>
-<div class="ok">Mode: <strong>{mode}</strong> | Devices: <strong>{device_count}</strong></div>
-<h2>Recent Telemetry</h2>
-<table>
-  <tr><th>Device</th><th>Topic</th><th>Reading</th><th>Time</th></tr>
-  {telemetry_rows}
-</table>
-<h2>Audit Log (last 20 entries)</h2>
-<table>
-  <tr><th>Time</th><th>Actor</th><th>Action</th><th>Detail</th><th>Alert</th></tr>
-  {audit_rows}
-</table>
-</body>
-</html>"""
+
+def _format_device_type(device_id: str) -> str:
+    """Return colored type tag HTML based on device prefix."""
+    if "rfid" in device_id:
+        return '<span class="type-tag type-rfid">RFID LOCK</span>'
+    elif "temp" in device_id:
+        return '<span class="type-tag type-temp">TEMPERATURE</span>'
+    elif "energy" in device_id:
+        return '<span class="type-tag type-energy">ENERGY METER</span>'
+    elif "motion" in device_id:
+        return '<span class="type-tag type-motion">MOTION SENSOR</span>'
+    return '<span class="type-tag">DEVICE</span>'
+
+
+def _render_telemetry_rows(telemetry: Any, fmt_time_fn) -> str:
+    """Format telemetry records into styled HTML table rows."""
+    if not isinstance(telemetry, list) or not telemetry:
+        return "<tr><td colspan='4' style='text-align:center; padding:20px; color:#64748b;'>No telemetry yet</td></tr>"
+    rows = []
+    for row in telemetry[:20]:
+        dev_id = str(row.get("device_id", ""))
+        topic = str(row.get("topic", ""))
+        payload = str(row.get("payload_plaintext", row.get("payload", "")))
+        ts = fmt_time_fn(row.get("timestamp", ""))
+        type_tag = _format_device_type(dev_id)
+        rows.append(
+            f"<tr>"
+            f"<td>{type_tag}<span class='device-chip'>{dev_id}</span></td>"
+            f"<td><span style='color:#64748b; font-family:monospace;'>{topic}</span></td>"
+            f"<td><span class='payload-box'>{payload[:95]}</span></td>"
+            f"<td><span style='color:#475569; font-weight:500;'>{ts}</span></td>"
+            f"</tr>"
+        )
+    return "".join(rows)
+
+
+def _render_audit_rows(audit: Any, fmt_time_fn) -> str:
+    """Format audit entries into styled HTML table rows."""
+    if not isinstance(audit, list) or not audit:
+        return "<tr><td colspan='5' style='text-align:center; padding:20px; color:#64748b;'>No audit log entries</td></tr>"
+    rows = []
+    for entry in audit[:20]:
+        is_alert = bool(entry.get("alert"))
+        badge = (
+            '<span class="pill pill-alert">ALERT</span>'
+            if is_alert else '<span class="pill pill-ok">OK</span>'
+        )
+        ts = fmt_time_fn(entry.get("timestamp", ""))
+        actor = str(entry.get("actor", ""))
+        action = str(entry.get("action", ""))
+        detail = str(entry.get("detail", ""))
+        rows.append(
+            f"<tr>"
+            f"<td><span style='color:#475569; font-weight:500;'>{ts}</span></td>"
+            f"<td><strong>{actor}</strong></td>"
+            f"<td><span class='pill pill-action'>{action}</span></td>"
+            f"<td><span style='color:#334155;'>{detail}</span></td>"
+            f"<td style='text-align:center;'>{badge}</td>"
+            f"</tr>"
+        )
+    return "".join(rows)
 
 
 def create_dashboard_app(system: Any) -> "object":
-    """Create and return the Flask dashboard application.
-
-    system : SystemContainer with cloud and devices attributes.
-    """
+    """Create and return the Flask dashboard application."""
     try:
         from flask import Flask
     except ImportError as exc:
@@ -71,64 +96,37 @@ def create_dashboard_app(system: Any) -> "object":
 
     @app.route("/")
     def index():
-        """Main dashboard page."""
+        """Render the main security dashboard console."""
         from flask import make_response
-        import datetime
-
-        # Gather telemetry (use a warden token so we get all data)
-        telemetry = []
-        try:
-            token = system.cloud.login("warden", "warden123")
-            telemetry = system.cloud.query(token, {})
-        except Exception as exc:
-            logger.warning("Dashboard: could not fetch telemetry: %s", exc)
 
         def _fmt_time(ts):
             try:
-                return datetime.datetime.fromtimestamp(float(ts), datetime.timezone.utc).strftime("%H:%M:%S")
+                return datetime.datetime.fromtimestamp(
+                    float(ts), datetime.timezone.utc
+                ).strftime("%H:%M:%S")
             except Exception:
                 return str(ts)
 
-        trows = ""
-        for row in telemetry[:20]:
-            payload_text = row.get("payload_plaintext", row.get("payload", ""))
-            trows += (
-                f"<tr><td>{row.get('device_id','')}</td>"
-                f"<td>{row.get('topic','')}</td>"
-                f"<td>{str(payload_text)[:80]}</td>"
-                f"<td>{_fmt_time(row.get('timestamp',''))}</td></tr>"
-            )
-        if not trows:
-            trows = "<tr><td colspan='4'>No telemetry yet</td></tr>"
-
-        # Gather audit log if available
-        audit_rows = ""
+        telemetry = []
+        audit = []
         try:
             token = system.cloud.login("warden", "warden123")
-            audit = system.cloud.admin(token, "get_audit_log", {})
-            for entry in audit[:20]:
-                badge = (
-                    '<span class="badge badge-red">ALERT</span>'
-                    if entry.get("alert")
-                    else '<span class="badge badge-green">OK</span>'
-                )
-                audit_rows += (
-                    f"<tr><td>{_fmt_time(entry.get('timestamp',''))}</td>"
-                    f"<td>{entry.get('actor','')}</td>"
-                    f"<td>{entry.get('action','')}</td>"
-                    f"<td>{entry.get('detail','')}</td>"
-                    f"<td>{badge}</td></tr>"
-                )
-        except Exception:
-            pass
-        if not audit_rows:
-            audit_rows = "<tr><td colspan='5'>No audit log entries</td></tr>"
+            telemetry = system.cloud.query(token, {})
+            audit_res = system.cloud.admin(token, "get_audit_log", {})
+            if isinstance(audit_res, list):
+                audit = audit_res
+        except Exception as exc:
+            logger.warning("Dashboard: error fetching cloud data: %s", exc)
 
-        html = _HTML_TEMPLATE.format(
-            mode=system.mode,
-            device_count=len(system.devices),
-            telemetry_rows=trows,
-            audit_rows=audit_rows,
+        trows = _render_telemetry_rows(telemetry, _fmt_time)
+        arows = _render_audit_rows(audit, _fmt_time)
+
+        html = (
+            DASHBOARD_HTML_TEMPLATE
+            .replace("{{MODE}}", str(system.mode).lower())
+            .replace("{{DEVICE_COUNT}}", str(len(system.devices)))
+            .replace("{{TELEMETRY_ROWS}}", trows)
+            .replace("{{AUDIT_ROWS}}", arows)
         )
         resp = make_response(html)
         resp.content_type = "text/html; charset=utf-8"
@@ -149,7 +147,7 @@ def create_dashboard_app(system: Any) -> "object":
 
 
 def run_dashboard(system: Any, port: int = 5000) -> None:
-    """Start the Flask dashboard.  Binds to 127.0.0.1 only."""
+    """Start the Flask dashboard bound to 127.0.0.1 only."""
     app = create_dashboard_app(system)
     logger.info("Starting dashboard at http://127.0.0.1:%d/", port)
     print(f"\nDashboard running at http://127.0.0.1:{port}/")
