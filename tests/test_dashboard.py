@@ -44,3 +44,22 @@ def test_dashboard_routes_secure(secure_sys):
     json_data = api_resp.get_json()
     assert json_data["mode"] == "secure"
     assert json_data["status"] == "ok"
+
+    # Test interactive API endpoints
+    sim_resp = client.post("/api/run-simulation")
+    assert sim_resp.status_code == 200
+    sim_data = sim_resp.get_json()
+    assert sim_data["status"] == "ok"
+    assert "scorecard" in sim_data
+    assert sim_data["scorecard"]["secure"]["blocked"] == 6
+
+    inj_resp = client.post("/api/inject-telemetry")
+    assert inj_resp.status_code == 200
+    assert inj_resp.get_json()["status"] == "ok"
+
+    alert_resp = client.post("/api/trigger-alert")
+    assert alert_resp.status_code == 200
+    assert alert_resp.get_json()["status"] == "ok"
+
+    chart_resp = client.get("/outputs/comparison_chart.png")
+    assert chart_resp.status_code in (200, 404)

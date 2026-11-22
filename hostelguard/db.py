@@ -65,14 +65,22 @@ class Database:
         return self._conn.execute(sql, params).fetchone()
 
     def reset(self) -> None:
-        """Drop the database file and reconnect with an empty database.
-
-        Called at the start of each demo run so previous data does not bleed
-        into new results.
-        """
+        """Drop the database file or tables and reconnect with an empty database."""
         self.close()
         if self._path.exists():
-            self._path.unlink()
+            try:
+                self._path.unlink()
+            except (PermissionError, OSError) as exc:
+                logger.warning("Could not unlink db, truncating tables: %s", exc)
+                self._connect()
+                tables = self._conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+                for tbl in tables:
+                    if not tbl["name"].startswith("sqlite_"):
+                        self._conn.execute(f"DROP TABLE IF EXISTS \"{tbl['name']}\"")
+                self._conn.commit()
+                return
         self._connect()
         logger.info("Database reset: %s", self._path)
 
