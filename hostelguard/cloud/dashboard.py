@@ -21,6 +21,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
+<meta http-equiv="refresh" content="5">
 <title>HostelGuard Dashboard</title>
 <style>
   body {{ font-family: Arial, sans-serif; background: #f0f4f8; color: #1a202c; margin: 0; padding: 20px; }}

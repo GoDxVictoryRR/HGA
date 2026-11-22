@@ -96,17 +96,21 @@ class SecureCloudService(CloudServiceBase):
         )
 
     def ingest(self, envelope: MessageEnvelope) -> None:
-        """Encrypt and store a telemetry message."""
-        aes_key = self._keystore.get(envelope.device_id, KEY_AES)
-        if aes_key:
-            cipher = AesGcmCipher(aes_key)
-            nonce, ciphertext = cipher.encrypt(envelope.payload)
-            payload_stored = ciphertext.hex()
-            nonce_hex = nonce.hex()
-        else:
-            # Fall back to base64-like hex if key not provisioned yet
+        """Store encrypted telemetry message at rest."""
+        if envelope.encrypted and envelope.nonce:
             payload_stored = envelope.payload.hex()
-            nonce_hex = ""
+            nonce_hex = envelope.nonce.hex()
+        else:
+            aes_key = self._keystore.get(envelope.device_id, KEY_AES)
+            if aes_key:
+                cipher = AesGcmCipher(aes_key)
+                assoc = f"{envelope.device_id}:{envelope.topic}".encode()
+                nonce, ciphertext = cipher.encrypt(envelope.payload, assoc)
+                payload_stored = ciphertext.hex()
+                nonce_hex = nonce.hex()
+            else:
+                payload_stored = envelope.payload.hex()
+                nonce_hex = ""
 
         self._db.execute(
             "INSERT INTO secure_telemetry (device_id, topic, payload_enc, nonce_hex, timestamp) "
@@ -200,7 +204,12 @@ class SecureCloudService(CloudServiceBase):
                     cipher = AesGcmCipher(aes_key)
                     nonce = bytes.fromhex(record["nonce_hex"])
                     ct = bytes.fromhex(record["payload_enc"])
-                    record["payload_plaintext"] = cipher.decrypt(nonce, ct).decode("utf-8", errors="replace")
+                    assoc = f"{record['device_id']}:{record['topic']}".encode()
+                    try:
+                        dec = cipher.decrypt(nonce, ct, assoc)
+                    except Exception:
+                        dec = cipher.decrypt(nonce, ct)
+                    record["payload_plaintext"] = dec.decode("utf-8", errors="replace")
                 except Exception:
                     record["payload_plaintext"] = "[decryption failed]"
             results.append(record)

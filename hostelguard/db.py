@@ -38,7 +38,7 @@ class Database:
 
     def _connect(self) -> None:
         """Open the database connection with safe settings."""
-        self._conn = sqlite3.connect(str(self._path))
+        self._conn = sqlite3.connect(str(self._path), check_same_thread=False)
         # Return rows as sqlite3.Row so columns are accessible by name
         self._conn.row_factory = sqlite3.Row
         # Enable WAL mode for better concurrency on Windows

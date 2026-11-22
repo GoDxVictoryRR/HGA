@@ -79,6 +79,17 @@ def _run_serve() -> int:
     system = build_secure_system()
     run_normal_traffic(system)
 
+    # Seed demo audit events (both normal and security alert)
+    try:
+        system.cloud.login("intruder_bot", "admin123")
+    except Exception:
+        pass
+    try:
+        token = system.cloud.login("warden", "warden123")
+        system.cloud.admin(token, "list_users", {})
+    except Exception:
+        pass
+
     try:
         run_dashboard(system)
     finally:
