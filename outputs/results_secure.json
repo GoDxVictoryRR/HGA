@@ -1,0 +1,61 @@
+[
+  {
+    "name": "Replay Attack",
+    "mode": "secure",
+    "succeeded": false,
+    "detail": "Blocked: timestamp/counter replay detected",
+    "metrics": {
+      "blocked": 1
+    }
+  },
+  {
+    "name": "Spoofing Attack",
+    "mode": "secure",
+    "succeeded": false,
+    "detail": "Blocked: HMAC/auth check",
+    "metrics": {
+      "blocked": 1
+    }
+  },
+  {
+    "name": "Brute Force Attack",
+    "mode": "secure",
+    "succeeded": false,
+    "detail": "Failed after 20 attempts",
+    "metrics": {
+      "attempts": 20,
+      "cracked": 0,
+      "password": ""
+    }
+  },
+  {
+    "name": "Flooding (DoS) Attack",
+    "mode": "secure",
+    "succeeded": false,
+    "detail": "Rate limiter blocked 30/50 messages",
+    "metrics": {
+      "sent": 20,
+      "blocked": 30
+    }
+  },
+  {
+    "name": "Sniffing Attack",
+    "mode": "secure",
+    "succeeded": false,
+    "detail": "No readable messages captured",
+    "metrics": {
+      "captured": 5,
+      "readable": 0,
+      "sample": ""
+    }
+  },
+  {
+    "name": "Tampering Attack",
+    "mode": "secure",
+    "succeeded": false,
+    "detail": "HMAC verification rejects tampered payload at receiver",
+    "metrics": {
+      "blocked": 1
+    }
+  }
+]

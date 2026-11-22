@@ -1,0 +1,63 @@
+[
+  {
+    "name": "Replay Attack",
+    "mode": "insecure",
+    "succeeded": true,
+    "detail": "Replayed 3 messages; 3 accepted (no counter/timestamp check)",
+    "metrics": {
+      "captured": 3,
+      "replayed": 3,
+      "accepted": 3
+    }
+  },
+  {
+    "name": "Spoofing Attack",
+    "mode": "insecure",
+    "succeeded": true,
+    "detail": "Spoofed unlock command delivered to door lock (no signature check)",
+    "metrics": {
+      "delivered": 1
+    }
+  },
+  {
+    "name": "Brute Force Attack",
+    "mode": "insecure",
+    "succeeded": true,
+    "detail": "Password 'warden123' found after 6 attempts (no lockout)",
+    "metrics": {
+      "attempts": 6,
+      "cracked": 1,
+      "password": "warden123"
+    }
+  },
+  {
+    "name": "Flooding (DoS) Attack",
+    "mode": "insecure",
+    "succeeded": true,
+    "detail": "Injected 50/50 messages (no rate limit)",
+    "metrics": {
+      "injected": 50,
+      "target_count": 50
+    }
+  },
+  {
+    "name": "Sniffing Attack",
+    "mode": "insecure",
+    "succeeded": true,
+    "detail": "Read 5 plaintext payloads from 5 messages",
+    "metrics": {
+      "captured": 5,
+      "readable": 5,
+      "sample": "{'status': 'locked', 'location': 'main_gate'}"
+    }
+  },
+  {
+    "name": "Tampering Attack",
+    "mode": "insecure",
+    "succeeded": true,
+    "detail": "Tampered 2 messages (no MAC check)",
+    "metrics": {
+      "tampered": 2
+    }
+  }
+]

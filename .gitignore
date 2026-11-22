@@ -1,0 +1,17 @@
+# User explicit excludes
+.agents/
+docs/
+
+# Python & Environment
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Runtime generated databases & keys
+outputs/hostelguard.db
+outputs/keystore.json
+*.zip
